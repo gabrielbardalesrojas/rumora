@@ -1,0 +1,18 @@
+CREATE TABLE `users` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Identificador único del usuario',
+    `numero` VARCHAR(20) NOT NULL UNIQUE COMMENT 'Número de teléfono del usuario, usado para iniciar sesión',
+    `contrasena` VARCHAR(255) NOT NULL COMMENT 'Contraseña hasheada del usuario (usar password_hash en PHP)',
+    `genero` ENUM('male', 'female', 'other') NOT NULL COMMENT 'Género del usuario',
+    `departamento` VARCHAR(50) NOT NULL COMMENT 'Departamento de residencia del usuario (Perú o "Extranjero")',
+    `provincia` VARCHAR(50) NOT NULL COMMENT 'Provincia de residencia del usuario (Perú o "Extranjero")',
+    `avatar` VARCHAR(255) NOT NULL COMMENT 'URL o ruta al avatar aleatorio asignado al usuario',
+    `nombre_usuario` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Nombre de usuario aleatorio asignado',
+    `is_public` BOOLEAN DEFAULT TRUE COMMENT 'Indica si el perfil es visible en listas públicas (TRUE por defecto)',
+    `last_seen` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp de la última vez que el usuario estuvo activo',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha y hora de creación del registro del usuario',
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Fecha y hora de la última actualización del registro'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tabla para almacenar los datos de los usuarios de RUMORA';
+
+-- Índices adicionales para mejorar el rendimiento de las búsquedas
+CREATE INDEX idx_departamento_provincia ON `users` (`departamento`, `provincia`);
+CREATE INDEX idx_is_public ON `users` (`is_public`);
