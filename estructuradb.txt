@@ -16,3 +16,17 @@ CREATE TABLE `users` (
 -- Índices adicionales para mejorar el rendimiento de las búsquedas
 CREATE INDEX idx_departamento_provincia ON `users` (`departamento`, `provincia`);
 CREATE INDEX idx_is_public ON `users` (`is_public`);
+
+CREATE TABLE admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL, -- Store hashed passwords
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Example: Insert a test admin (password 'admin123' hashed)
+-- Use a PHP script to hash the password properly for production:
+-- echo password_hash('admin123', PASSWORD_BCRYPT);
+-- For quick testing, you can manually hash if you know how, or create a temporary script:
+-- <?php echo password_hash('your_admin_password', PASSWORD_BCRYPT); ?>
+INSERT INTO admins (email, password) VALUES ('admin@rumora.com', '$2y$10$YourHashedPasswordHere');

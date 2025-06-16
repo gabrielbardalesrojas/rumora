@@ -7,14 +7,14 @@
 // desde el archivo que incluye este controlador (ej. index.php).
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_submit'])) {
-    // FILTER_SANITIZE_STRING está deprecado. Por defecto, filter_input ya devuelve un string.
-    // La sanitización para la base de datos es manejada por PDO con prepared statements.
     $numero = filter_input(INPUT_POST, 'phone');
     $contrasena = filter_input(INPUT_POST, 'password');
 
     if (empty($numero) || empty($contrasena)) {
         $_SESSION['message'] = "Por favor, ingresa tu número de teléfono y contraseña.";
         $_SESSION['message_type'] = "error";
+        header("Location: index.php"); // <--- ADD THIS LINE
+        exit(); // <--- ADD THIS LINE
     } else {
         try {
             // Buscar al usuario por número de teléfono
@@ -39,10 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_submit'])) {
             } else {
                 $_SESSION['message'] = "Número de teléfono o contraseña incorrectos.";
                 $_SESSION['message_type'] = "error";
+                header("Location: index.php"); // <--- ADD THIS LINE
+                exit(); // <--- ADD THIS LINE
             }
         } catch (PDOException $e) {
             $_SESSION['message'] = "Error al iniciar sesión: " . $e->getMessage();
             $_SESSION['message_type'] = "error";
+            header("Location: index.php"); // <--- ADD THIS LINE
+            exit(); // <--- ADD THIS LINE
         }
     }
 }

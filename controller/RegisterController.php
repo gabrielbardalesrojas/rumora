@@ -31,49 +31,66 @@ function generateRandomAvatar() {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_submit'])) {
-    $numero = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
-    $contrasena = filter_input(INPUT_POST, 'password', FILTER_SANITIZE_STRING);
-    $genero = filter_input(INPUT_POST, 'gender', FILTER_SANITIZE_STRING);
+    $numero = filter_input(INPUT_POST, 'phone');
+    $contrasena = filter_input(INPUT_POST, 'password');
+    $genero = filter_input(INPUT_POST, 'gender');
     $is_foreign = isset($_POST['is_foreign']);
-    $departamento = $is_foreign ? 'Extranjero' : filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING);
-    $provincia = $is_foreign ? 'Extranjero' : filter_input(INPUT_POST, 'province', FILTER_SANITIZE_STRING);
+    $departamento = $is_foreign ? 'Extranjero' : filter_input(INPUT_POST, 'department');
+    $provincia = $is_foreign ? 'Extranjero' : filter_input(INPUT_POST, 'province');
 
     // Validaciones básicas
     if (empty($numero) || empty($contrasena) || empty($genero) || (!$is_foreign && (empty($departamento) || empty($provincia))) || strlen($contrasena) < 6) {
-        $_SESSION['message'] = "Por favor, completa todos los campos correctamente.";
+        $_SESSION['message'] = "Por favor, completa todos los campos correctamente y asegúrate que la contraseña tenga al menos 6 caracteres.";
         $_SESSION['message_type'] = "error";
+        header("Location: index.php"); // <--- ADD THIS LINE
+        exit(); // <--- ADD THIS LINE
+    } elseif (!preg_match('/^9\d{8}$/', $numero)) { // Validate phone number format
+        $_SESSION['message'] = "El número de teléfono debe empezar con 9 y tener 9 dígitos.";
+        $_SESSION['message_type'] = "error";
+        header("Location: index.php"); // <--- ADD THIS LINE
+        exit(); // <--- ADD THIS LINE
     } else {
         try {
-            // Hashear la contraseña antes de almacenarla
-            $contrasena_hasheada = password_hash($contrasena, PASSWORD_BCRYPT);
+            // Check if the phone number already exists
+            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM users WHERE numero = ?");
+            $stmt_check->execute([$numero]);
+            if ($stmt_check->fetchColumn() > 0) {
+                $_SESSION['message'] = "El número de teléfono ya está registrado.";
+                $_SESSION['message_type'] = "error";
+                header("Location: index.php"); // <--- ADD THIS LINE
+                exit(); // <--- ADD THIS LINE
+            } else {
+                // Hashear la contraseña antes de almacenarla
+                $contrasena_hasheada = password_hash($contrasena, PASSWORD_BCRYPT);
 
-            // Generar avatar y nombre de usuario aleatorios
-            $avatar_url = generateRandomAvatar();
-            $nombre_usuario = generateRandomUsername();
+                // Generar avatar y nombre de usuario aleatorios
+                $avatar_url = generateRandomAvatar();
+                $nombre_usuario = generateRandomUsername();
 
-            // Preparar la consulta SQL para insertar el nuevo usuario
-            $stmt = $pdo->prepare("INSERT INTO users (numero, contrasena, genero, departamento, provincia, avatar, nombre_usuario) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$numero, $contrasena_hasheada, $genero, $departamento, $provincia, $avatar_url, $nombre_usuario]);
+                // Preparar la consulta SQL para insertar el nuevo usuario
+                $stmt = $pdo->prepare("INSERT INTO users (numero, contrasena, genero, departamento, provincia, avatar, nombre_usuario) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$numero, $contrasena_hasheada, $genero, $departamento, $provincia, $avatar_url, $nombre_usuario]);
 
-            // Iniciar sesión automáticamente después del registro exitoso
-            $_SESSION['user_id'] = $pdo->lastInsertId();
-            $_SESSION['username'] = $nombre_usuario;
-            $_SESSION['avatar'] = $avatar_url;
-            $_SESSION['message'] = "¡Registro exitoso! Bienvenido a RUMORA.";
-            $_SESSION['message_type'] = "success";
+                // Iniciar sesión automáticamente después del registro exitoso
+                $_SESSION['user_id'] = $pdo->lastInsertId();
+                $_SESSION['username'] = $nombre_usuario;
+                $_SESSION['avatar'] = $avatar_url;
+                $_SESSION['message'] = "¡Registro exitoso! Bienvenido a RUMORA.";
+                $_SESSION['message_type'] = "success";
 
-            header("Location: " . $dashboard_path); // Redirige al dashboard
-            exit();
-
+                header("Location: " . $dashboard_path); // Redirige al dashboard
+                exit();
+            }
         } catch (PDOException $e) {
-            // Manejo de errores (ej. número de teléfono ya registrado)
-            if ($e->getCode() == 23000) { // Código de error para duplicado de entrada
+            if ($e->getCode() == 23000) {
                 $_SESSION['message'] = "El número de teléfono ya está registrado.";
                 $_SESSION['message_type'] = "error";
             } else {
                 $_SESSION['message'] = "Error al registrar: " . $e->getMessage();
                 $_SESSION['message_type'] = "error";
             }
+            header("Location: index.php"); // <--- ADD THIS LINE
+            exit(); // <--- ADD THIS LINE
         }
     }
 }
