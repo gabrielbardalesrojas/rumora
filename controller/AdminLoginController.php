@@ -8,7 +8,7 @@
 // desde el archivo que incluye este controlador (ej. index.php).
 
 // Define la ruta del dashboard de admin (ajusta según tu estructura)
-$admin_dashboard_path = 'views/admin/dashboard_admin.php'; // Example path
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login_submit'])) {
     $email = filter_input(INPUT_POST, 'admin_email', FILTER_SANITIZE_EMAIL);
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login_submit'])
         $_SESSION['message_type'] = "error";
         header("Location: index.php"); // Redirect back to index.php
         exit();
-    }
+    }else {
 
     try {
         // Buscar al administrador por correo
@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login_submit'])
             $_SESSION['message'] = "¡Inicio de sesión de administrador exitoso!";
             $_SESSION['message_type'] = "success";
 
+            
+
             header("Location: " . $admin_dashboard_path);
             exit();
         } else {
@@ -51,4 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login_submit'])
         exit();
     }
 }
+ }
+
+
+
 ?>

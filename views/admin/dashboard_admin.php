@@ -2,13 +2,13 @@
 session_start();
 
 // Si el usuario no está logueado, redirigir al index
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['admin_id'])) {
     header("Location: ../../index.php");
     exit();
 }
 
-$username = $_SESSION['username'] ?? 'Usuario RUMORA';
-$avatar = $_SESSION['avatar'] ?? 'https://placehold.co/100x100/A855F7/ffffff?text=RU'; // Default avatar
+$username = $_SESSION['email'] ?? 'Usuario RUMORA';
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
