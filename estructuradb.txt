@@ -1,4 +1,11 @@
-CREATE TABLE `users` (
+-- Crear la base de datos si no existe
+CREATE DATABASE IF NOT EXISTS `rumora` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Seleccionar la base de datos
+USE `rumora`;
+
+-- Crear la tabla de usuarios
+CREATE TABLE IF NOT EXISTS `users` (
     `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Identificador único del usuario',
     `numero` VARCHAR(20) NOT NULL UNIQUE COMMENT 'Número de teléfono del usuario, usado para iniciar sesión',
     `contrasena` VARCHAR(255) NOT NULL COMMENT 'Contraseña hasheada del usuario (usar password_hash en PHP)',
@@ -8,6 +15,7 @@ CREATE TABLE `users` (
     `avatar` VARCHAR(255) NOT NULL COMMENT 'URL o ruta al avatar aleatorio asignado al usuario',
     `nombre_usuario` VARCHAR(100) NOT NULL UNIQUE COMMENT 'Nombre de usuario aleatorio asignado',
     `is_public` BOOLEAN DEFAULT TRUE COMMENT 'Indica si el perfil es visible en listas públicas (TRUE por defecto)',
+    `is_admin` BOOLEAN DEFAULT FALSE COMMENT 'Indica si el usuario tiene permisos de administrador',
     `last_seen` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp de la última vez que el usuario estuvo activo',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha y hora de creación del registro del usuario',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Fecha y hora de la última actualización del registro'

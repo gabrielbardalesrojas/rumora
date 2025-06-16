@@ -1,0 +1,60 @@
+# Panel de Administración RUMORA
+
+## Funcionalidades Principales
+
+### 1. Gestión de Usuarios
+- **Listado de Usuarios**
+  - Ver todos los usuarios registrados en el sistema
+  - Filtrar por estado (activo/inactivo)
+  - Búsqueda por nombre de usuario, número de teléfono o ubicación
+  - Ordenar por fecha de registro, última conexión, etc.
+
+- **Acciones sobre Usuarios**
+  - Desactivar/Activar cuentas de usuario
+  - Restablecer contraseñas
+  - Ver detalles completos del perfil
+  - Exportar lista de usuarios (CSV/Excel)
+
+### 2. Estadísticas del Sistema
+- **Métricas Principales**
+  - Total de usuarios registrados
+  - Usuarios activos en las últimas 24h
+  - Nuevos usuarios (hoy/esta semana/este mes)
+  - Distribución por género
+  - Mapa de distribución geográfica
+
+- **Gráficos**
+  - Crecimiento de usuarios por período
+  - Actividad de usuarios
+  - Dispositivos utilizados
+
+### 3. Configuración del Sistema
+- **Ajustes Generales**
+  - Configuración de la aplicación
+  - Políticas de privacidad y términos
+  - Configuración de notificaciones
+
+- **Seguridad**
+  - Registro de actividades sospechosas
+  - Gestión de sesiones activas
+  - Configuración de autenticación
+
+## Requisitos de Acceso
+- Solo usuarios con rol de administrador pueden acceder a este panel
+- Autenticación de dos factores para accesos administrativos
+- Registro detallado de todas las acciones realizadas
+
+## Interfaz de Usuario
+- Diseño responsive que funciona en escritorio y móvil
+- Panel de control con widgets personalizables
+- Navegación intuitiva y rápida
+- Modo oscuro/claro
+
+## Seguridad
+- Protección contra ataques CSRF
+- Validación de entrada de datos
+- Encriptación de datos sensibles
+- Copias de seguridad automáticas
+
+---
+*Este documento está sujeto a actualizaciones según las necesidades del sistema.*

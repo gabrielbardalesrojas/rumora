@@ -7,8 +7,24 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$username = $_SESSION['username'] ?? 'Usuario RUMORA';
-$avatar = $_SESSION['avatar'] ?? 'https://placehold.co/100x100/A855F7/ffffff?text=RU'; // Default avatar
+// Incluir configuración de base de datos
+require_once '../../config/database.php';
+
+// Obtener información del usuario incluyendo si es administrador
+$user_id = $_SESSION['user_id'];
+$stmt = $pdo->prepare("SELECT username, avatar, is_admin FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    session_destroy();
+    header("Location: ../../index.php");
+    exit();
+}
+
+$username = $user['username'] ?? 'Usuario RUMORA';
+$avatar = $user['avatar'] ?? 'https://placehold.co/100x100/A855F7/ffffff?text=RU';
+$is_admin = $user['is_admin'] ?? false;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -72,9 +88,17 @@ $avatar = $_SESSION['avatar'] ?? 'https://placehold.co/100x100/A855F7/ffffff?tex
             ¡Prepárate para conectar, expresar y descubrir!
         </p>
 
-        <a href="../../logout.php" class="py-3 px-8 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 btn-logout text-lg shadow-lg">
-            <i class="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión
-        </a>
+        <div class="flex flex-col sm:flex-row gap-4 mt-6">
+            <?php if ($is_admin): ?>
+            <a href="/admin/dashboard" class="py-3 px-6 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg">
+                <i class="fas fa-shield-alt"></i> Panel de Administración
+            </a>
+            <?php endif; ?>
+            
+            <a href="../../logout.php" class="py-3 px-6 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-lg">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+        </div>
     </div>
 </body>
 </html>
