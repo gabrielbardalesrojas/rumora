@@ -1,9 +1,56 @@
-<?php include '../includes/header.php'; ?>
+<?php 
+// Incluir configuración de la base de datos
+require_once '../../config/database.php';
 
-<div class="container mt-4">
+// Inicializar variables de búsqueda y filtro
+$search = $_GET['search'] ?? '';
+$estado = $_GET['estado'] ?? 'todos';
+$pagina = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$por_pagina = 10;
+$offset = ($pagina - 1) * $por_pagina;
+
+// Construir la consulta base
+$query = "SELECT * FROM users WHERE 1=1";
+$params = [];
+
+// Aplicar filtros
+if (!empty($search)) {
+    $query .= " AND (nombre_usuario LIKE ? OR numero LIKE ?)";
+    $searchTerm = "%$search%";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+}
+
+if ($estado === 'activos') {
+    $query .= " AND last_seen >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+} elseif ($estado === 'inactivos') {
+    $query .= " AND (last_seen IS NULL OR last_seen < DATE_SUB(NOW(), INTERVAL 30 DAY))";
+}
+
+// Contar el total de registros para la paginación
+$countStmt = $pdo->prepare(str_replace('SELECT *', 'SELECT COUNT(*) as total', $query));
+$countStmt->execute($params);
+$total_usuarios = $countStmt->fetch()['total'];
+$total_paginas = ceil($total_usuarios / $por_pagina);
+
+// Aplicar paginación
+$query .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+$params[] = $por_pagina;
+$params[] = $offset;
+
+// Obtener los usuarios
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
+$usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Incluir el encabezado
+include '../../includes/header.php'; 
+?>
+
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Gestión de Usuarios</h1>
-        <a href="/admin/dashboard" class="btn btn-secondary">
+        <a href="/rumora/views/admin/dashboard_admin.php" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver al Panel
         </a>
     </div>
@@ -39,9 +86,20 @@
     <!-- Tabla de usuarios -->
     <div class="card">
         <div class="card-body">
+            <?php if (isset($_SESSION['message'])): ?>
+                <div class="alert alert-<?php echo $_SESSION['message_type'] === 'error' ? 'danger' : 'success'; ?> alert-dismissible fade show" role="alert">
+                    <?php 
+                    echo htmlspecialchars($_SESSION['message']); 
+                    unset($_SESSION['message']);
+                    unset($_SESSION['message_type']);
+                    ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
             <div class="table-responsive">
                 <table class="table table-hover">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th>ID</th>
                             <th>Usuario</th>
@@ -50,77 +108,130 @@
                             <th>Registro</th>
                             <th>Estado</th>
                             <th>Acciones</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($usuarios as $usuario): ?>
-                        <tr>
-                            <td><?php echo $usuario['id']; ?></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="<?php echo htmlspecialchars($usuario['avatar']); ?>" class="rounded-circle me-2" width="32" height="32" alt="Avatar">
-                                    <?php echo htmlspecialchars($usuario['nombre_usuario']); ?>
-                                    <?php if ($usuario['is_admin']): ?>
-                                        <span class="badge bg-warning ms-2">Admin</span>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <td><?php echo htmlspecialchars($usuario['numero']); ?></td>
-                            <td>
-                                <?php 
-                                $ubicacion = [];
-                                if (!empty($usuario['departamento'])) $ubicacion[] = $usuario['departamento'];
-                                if (!empty($usuario['provincia'])) $ubicacion[] = $usuario['provincia'];
-                                echo htmlspecialchars(implode(', ', $ubicacion));
-                                ?>
-                            </td>
-                            <td><?php echo date('d/m/Y', strtotime($usuario['created_at'])); ?></td>
-                            <td>
-                                <span class="badge bg-<?php echo $usuario['is_active'] ? 'success' : 'danger'; ?>">
-                                    <?php echo $usuario['is_active'] ? 'Activo' : 'Inactivo'; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="/perfil/<?php echo $usuario['id']; ?>" class="btn btn-sm btn-info" title="Ver perfil">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="/admin/usuarios/toggle/<?php echo $usuario['id']; ?>" class="btn btn-sm btn-<?php echo $usuario['is_active'] ? 'warning' : 'success'; ?>" 
-                                       title="<?php echo $usuario['is_active'] ? 'Desactivar' : 'Activar'; ?> cuenta"
-                                       onclick="return confirm('¿Estás seguro de <?php echo $usuario['is_active'] ? 'desactivar' : 'activar'; ?> esta cuenta?')">
-                                        <i class="fas <?php echo $usuario['is_active'] ? 'fa-user-slash' : 'fa-user-check'; ?>"></i>
-                                    </a>
-                                    <?php if (!$usuario['is_admin']): ?>
-                                    <a href="#" class="btn btn-sm btn-danger" 
-                                       title="Eliminar usuario"
-                                       onclick="return confirm('¿Estás seguro de eliminar permanentemente este usuario?')">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                        <?php if (count($usuarios) > 0): ?>
+                            <?php foreach ($usuarios as $usuario): 
+                                $esActivo = $usuario['last_seen'] && strtotime($usuario['last_seen']) > (time() - 86400 * 30); // Activo en los últimos 30 días
+                            ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($usuario['id']); ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <?php if (!empty($usuario['avatar'])): ?>
+                                            <img src="<?php echo htmlspecialchars($usuario['avatar']); ?>" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
+                                        <?php else: ?>
+                                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php echo htmlspecialchars($usuario['nombre_usuario']); ?>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($usuario['numero']); ?></td>
+                                <td><?php echo htmlspecialchars(($usuario['departamento'] ?? '') . (!empty($usuario['provincia']) ? ', ' . $usuario['provincia'] : '')); ?></td>
+                                <td><?php echo !empty($usuario['created_at']) ? date('d/m/Y', strtotime($usuario['created_at'])) : ''; ?></td>
+                                <td>
+                                    <span class="badge bg-<?php echo $esActivo ? 'success' : 'secondary'; ?>">
+                                        <?php echo $esActivo ? 'Activo' : 'Inactivo'; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="editar_usuario.php?id=<?php echo $usuario['id']; ?>" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-<?php echo ($usuario['is_public'] ?? 1) ? 'success' : 'warning'; ?>" 
+                                                onclick="cambiarVisibilidad(<?php echo $usuario['id']; ?>, <?php echo ($usuario['is_public'] ?? 1) ? '0' : '1'; ?>)"
+                                                data-bs-toggle="tooltip" title="<?php echo ($usuario['is_public'] ?? 1) ? 'Ocultar' : 'Mostrar'; ?> perfil">
+                                            <i class="fas fa-eye<?php echo ($usuario['is_public'] ?? 1) ? '' : '-slash'; ?>"></i>
+                                        </button>
+                                        <?php if ($usuario['is_admin'] != 1): ?>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="confirmarEliminar(<?php echo $usuario['id']; ?>, '<?php echo addslashes($usuario['nombre_usuario']); ?>')"
+                                                data-bs-toggle="tooltip" title="Eliminar">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" class="text-center py-4">No se encontraron usuarios que coincidan con los criterios de búsqueda.</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-            
+
             <!-- Paginación -->
-            <nav aria-label="Navegación de usuarios" class="mt-4">
+            <?php if ($total_paginas > 1): ?>
+            <nav aria-label="Paginación de usuarios" class="mt-4">
                 <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
+                    <li class="page-item <?php echo $pagina <= 1 ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="?pagina=<?php echo $pagina - 1; ?><?php echo !empty($search) ? '&search='.urlencode($search) : ''; ?><?php echo !empty($estado) ? '&estado='.urlencode($estado) : ''; ?>">Anterior</a>
                     </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Siguiente</a>
+                    
+                    <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
+                        <li class="page-item <?php echo $i === $pagina ? 'active' : ''; ?>">
+                            <a class="page-link" href="?pagina=<?php echo $i; ?><?php echo !empty($search) ? '&search='.urlencode($search) : ''; ?><?php echo !empty($estado) ? '&estado='.urlencode($estado) : ''; ?>"><?php echo $i; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    
+                    <li class="page-item <?php echo $pagina >= $total_paginas ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="?pagina=<?php echo $pagina + 1; ?><?php echo !empty($search) ? '&search='.urlencode($search) : ''; ?><?php echo !empty($estado) ? '&estado='.urlencode($estado) : ''; ?>">Siguiente</a>
                     </li>
                 </ul>
             </nav>
+            <?php endif; ?>
+
+            <?php if ($total_usuarios > 0): ?>
+            <div class="text-muted text-center mt-2">
+                Mostrando <?php echo count($usuarios); ?> de <?php echo $total_usuarios; ?> usuarios
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
+
+<!-- Script para cambiar visibilidad del perfil -->
+<script>
+function cambiarVisibilidad(id, nuevoEstado) {
+    if (confirm('¿Estás seguro de que deseas ' + (nuevoEstado == 1 ? 'mostrar' : 'ocultar') + ' este perfil?')) {
+        fetch(`/rumora/views/admin/cambiar_visibilidad.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `id=${id}&is_public=${nuevoEstado}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error al actualizar la visibilidad del perfil');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 
 <?php include '../includes/footer.php'; ?>

@@ -12,7 +12,7 @@ require_once '../../config/database.php';
 
 // Obtener información del usuario incluyendo si es administrador
 $user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT username, avatar, is_admin FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT nombre_usuario as username, avatar, is_admin FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 

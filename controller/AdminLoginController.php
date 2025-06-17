@@ -7,8 +7,27 @@
 // Se asume que $pdo (conexión a la base de datos) está disponible
 // desde el archivo que incluye este controlador (ej. index.php).
 
-// Define la ruta del dashboard de admin (ajusta según tu estructura)
+// Ruta del dashboard de admin
+define('ADMIN_DASHBOARD_PATH', '/rumora/views/admin/dashboard_admin.php');
 
+// Función para obtener estadísticas del dashboard
+function getDashboardStats($pdo) {
+    $stats = [];
+    
+    // Total de usuarios
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users");
+    $stats['total_usuarios'] = $stmt->fetch()['total'];
+    
+    // Usuarios activos (últimos 30 días)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE last_seen >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $stats['usuarios_activos'] = $stmt->fetch()['total'];
+    
+    // Nuevos usuarios (últimos 7 días)
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+    $stats['nuevos_usuarios'] = $stmt->fetch()['total'];
+    
+    return $stats;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_login_submit'])) {
     $email = filter_input(INPUT_POST, 'admin_email', FILTER_SANITIZE_EMAIL);
