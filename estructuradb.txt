@@ -30,3 +30,59 @@ CREATE TABLE admins (
 -- For quick testing, you can manually hash if you know how, or create a temporary script:
 -- <?php echo password_hash('your_admin_password', PASSWORD_BCRYPT); ?>
 INSERT INTO admins (email, password) VALUES ('admin@rumora.com', '$2y$10$YourHashedPasswordHere');
+
+
+-- Table: messages
+CREATE TABLE `messages` (
+    `message_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `sender_id` INT NOT NULL,
+    `receiver_id` INT NOT NULL,
+    `message_content` TEXT NOT NULL,
+    `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `is_read` BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (`sender_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`receiver_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+
+-- Table: user_blocks (to manage blocked users)
+CREATE TABLE `user_blocks` (
+    `blocker_id` INT NOT NULL,
+    `blocked_id` INT NOT NULL,
+    `blocked_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`blocker_id`, `blocked_id`),
+    FOREIGN KEY (`blocker_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`blocked_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+
+-- Table: confessions
+CREATE TABLE `confessions` (
+    `confession_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT, -- NULL if truly anonymous, or link to user if tracking is desired but displayed as anonymous
+    `content` TEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `likes` INT DEFAULT 0,
+    `comments` INT DEFAULT 0,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+ALTER TABLE `users`
+ADD COLUMN `show_online_status` BOOLEAN DEFAULT TRUE COMMENT 'Indica si el usuario desea mostrar su estado en línea',
+ADD COLUMN `allow_stranger_messages` BOOLEAN DEFAULT TRUE COMMENT 'Indica si el usuario permite mensajes de desconocidos';
+
+
+CREATE TABLE `confession_likes` (
+    `like_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `confession_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `liked_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (`confession_id`, `user_id`), -- Ensures a user can only like a confession once
+    FOREIGN KEY (`confession_id`) REFERENCES `confessions`(`confession_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+CREATE TABLE `user_friends` (
+    `user_id` INT NOT NULL,
+    `friend_id` INT NOT NULL,
+    `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`user_id`, `friend_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`friend_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
